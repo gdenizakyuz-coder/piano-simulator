@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Web Piyano</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            color: #d4af37; /* Old money / şık ton */
+        }
+        .piano-container {
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+        .piano {
+            display: flex;
+            position: relative;
+        }
+        .key {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.1s;
+        }
+        .white {
+            width: 50px;
+            height: 200px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 0 0 5px 5px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 15px;
+            color: #333;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .white:active, .white.active {
+            background: #d4d4d4;
+        }
+        .black {
+            width: 30px;
+            height: 120px;
+            background: #222;
+            border-radius: 0 0 4px 4px;
+            position: absolute;
+            z-index: 2;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+            color: #fff;
+            font-size: 11px;
+        }
+        .black:active, .black.active {
+            background: #444;
+        }
+        /* Siyah tuşların konumları */
+        .cs { left: 35px; }
+        .ds { left: 85px; }
+        .fs { left: 185px; }
+        .gs { left: 235px; }
+        .as { left: 285px; }
+
+        .info {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #888;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>PIANO SIMULATOR</h1>
+    <div class="piano-container">
+        <div class="piano">
+            <!-- Beyaz Tuşlar -->
+            <div class="key white" data-note="261.63">A<span>C</span></div>
+            <div class="key white" data-note="293.66">S<span>D</span></div>
+            <div class="key white" data-note="329.63">D<span>E</span></div>
+            <div class="key white" data-note="349.23">F<span>F</span></div>
+            <div class="key white" data-note="392.00">G<span>G</span></div>
+            <div class="key white" data-note="440.00">H<span>A</span></div>
+            <div class="key white" data-note="493.88">J<span>B</span></div>
+            <div class="key white" data-note="523.25">K<span>C2</span></div>
+
+            <!-- Siyah Tuşlar -->
+            <div class="key black cs" data-note="277.18">W</div>
+            <div class="key black ds" data-note="311.13">E</div>
+            <div class="key black fs" data-note="369.99">T</div>
+            <div class="key black gs" data-note="415.30">Y</div>
+            <div class="key black as" data-note="466.16">U</div>
+        </div>
+    </div>
+    <div class="info">Fareyle tıklayabilir veya klavyendeki A, S, D, F, G, H, J, K / W, E, T, Y, U tuşlarını kullanabilirsin.</div>
+
+    <script>
+        // Web Audio API Tanımı
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTone(freq) {
+            if (!freq) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc.type = 'triangle'; // Yumuşak bir piyano/enstrüman tonu verir
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1);
+        }
+
+        // Fare ile tıklama olayları
+        const keys = document.querySelectorAll('.key');
+        keys.forEach(key => {
+            key.addEventListener('click', () => {
+                const freq = parseFloat(key.getAttribute('data-note'));
+                playTone(freq);
+                key.classList.add('active');
+                setTimeout(() => key.classList.remove('active'), 100);
+            });
+        });
+
+        // Klavye tuş eşleştirmeleri (Harf -> Frekans)
+        const keyMap = {
+            'KeyA': 261.63,
+            'KeyS': 293.66,
+            'KeyD': 329.63,
+            'KeyF': 349.23,
+            'KeyG': 392.00,
+            'KeyH': 440.00,
+            'KeyJ': 493.88,
+            'KeyK': 523.25,
+            'KeyW': 277.18,
+            'KeyE': 311.13,
+            'KeyT': 369.99,
+            'KeyY': 415.30,
+            'KeyU': 466.16
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return; // Tuşa basılı tutulduğunda sesin takılmasını önler
+            const freq = keyMap[e.code];
+            if (freq) {
+                playTone(freq);
+                // İlgili tuşu görsel olarak aktif et
+                const targetKey = Array.from(keys).find(k => parseFloat(k.getAttribute('data-note')) === freq);
+                if (targetKey) {
+                    targetKey.classList.add('active');
+                    setTimeout(() => targetKey.classList.remove('active'), 100);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
